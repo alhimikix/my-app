@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+  php:
+    image: php:7.4-fpm
+    volumes:
+      - ./:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on:
+      - mysql
+    expose:
+      - 9000
+    restart: always
+    networks:
+      - taxiua
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - 8090:80
+    restart: always
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - taxiua
+    depends_on:
+      - php
+
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - taxiua_mysql:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=laravel
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+    ports:
+      - 3090:3306
+    restart: always
+    networks:
+      - taxiua
+
+  redis:
+    image: redis:4.0-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - 6390:6379
+    restart: always
+    networks:
+      - taxiua
+
+volumes:
+  taxiua_mysql:
+
+#Docker Networks
+networks:
+  taxiua:
+    driver: bridge
